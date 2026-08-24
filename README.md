@@ -1,5 +1,7 @@
 # Code Reviewer AI Agent
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/divmora/code-reviewer-ai-agent)
+
 A context-aware, production-grade **AI Code Reviewer Agent CLI** built in Go and powered by the **[Divmora LocalHarness SDK](https://github.com/divmora/localharness)**.
 
 Code Reviewer analyzes pull requests and local git diffs across **GitLab (Cloud & Self-Hosted)**, **GitHub**, **Bitbucket**, and local workspaces. It generates CodeRabbit-grade reviews with quality scorecards, file walkthroughs, and 1-click committable code suggestions.
@@ -125,6 +127,26 @@ go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
 
 ---
 
+## Docker Usage
+
+You can run the agent inside Docker or with docker-compose:
+
+```bash
+# Build the Docker image
+docker build -t ghcr.io/divmora/code-reviewer-ai-agent:latest .
+
+# Review a GitLab MR via Docker
+docker run --rm \
+  -v ~/.divmora:/root/.divmora \
+  ghcr.io/divmora/code-reviewer-ai-agent:latest \
+  --url "https://gitlab.pixelvide.com/group/repo/-/merge_requests/123" \
+  --token "$GITLAB_TOKEN" \
+  --skip-tls-verify \
+  --post
+```
+
+---
+
 ## Testing
 
 ```bash
@@ -135,4 +157,4 @@ make test
 
 ## License
 
-Apache-2.0.
+MIT License. See [LICENSE](LICENSE) for details.

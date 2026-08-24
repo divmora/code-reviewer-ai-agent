@@ -1,5 +1,7 @@
 # AGENTS.md — Code Reviewer AI Agent
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/divmora/code-reviewer-ai-agent)
+
 This document describes the design, architecture, and operational contract of the **Code Reviewer AI Agent**, built with the **[Divmora LocalHarness SDK](https://github.com/divmora/localharness)**.
 
 ---
