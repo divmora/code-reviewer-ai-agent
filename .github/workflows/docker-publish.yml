@@ -3,7 +3,7 @@ name: CI/CD - Docker Build & Push
 on:
   push:
     branches: [ "**" ]
-    tags: [ 'v*.*.*' ]
+    tags: [ 'v*.*.*', 'v*' ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
@@ -97,13 +97,14 @@ jobs:
 
       - name: Build and push Docker image
         id: build-and-push
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             VERSION=${{ steps.version.outputs.VERSION }}
+            VCS_REF=${{ github.sha }}
           tags: |
             ${{ steps.meta-prod.outputs.tags }}
             ${{ steps.meta-debug.outputs.tags }}
