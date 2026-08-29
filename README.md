@@ -123,7 +123,45 @@ go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
 | `--rules-json` | `""` | Inline JSON structured rules payload from Zenith UI |
 | `--rules` | `""` | Path to custom YAML/JSON rules file |
 | `--rule` | `""` | Ad-hoc inline rule instruction |
+| `--litellm-base-url` | `""` | Custom LiteLLM proxy URL (or env `CODE_REVIEWER_LITELLM_BASE_URL` / `LITELLM_BASE_URL`) |
+| `--litellm-api-key` | `""` | Custom LiteLLM API key (or env `CODE_REVIEWER_LITELLM_API_KEY` / `LITELLM_API_KEY`) |
+| `--litellm-model` | `""` | Custom model identifier (or env `CODE_REVIEWER_LITELLM_MODEL` / `LITELLM_MODEL`) |
+| `--litellm-endpoint` | `""` | Named endpoint in `~/.divmora/config/litellm.json` (or env `CODE_REVIEWER_LITELLM_ENDPOINT` / `LITELLM_ENDPOINT`) |
 | `--verbose` | `false` | Enable verbose debug logging |
+
+---
+
+## Model & LLM Resolution Priority Flow
+
+```
+┌────────────────────────────────────────────────────────┐
+│ 1. CLI Flags (Highest Priority)                        │
+│    --litellm-base-url / --litellm-api-key              │
+│    --litellm-model    / --litellm-endpoint             │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 2. Tool-Specific Environment Variables                 │
+│    CODE_REVIEWER_LITELLM_BASE_URL                      │
+│    CODE_REVIEWER_LITELLM_API_KEY                       │
+│    CODE_REVIEWER_LITELLM_MODEL                         │
+│    CODE_REVIEWER_LITELLM_ENDPOINT                      │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 3. Generic LiteLLM Environment Variables               │
+│    LITELLM_BASE_URL / LITELLM_API_KEY                  │
+│    LITELLM_MODEL    / LITELLM_ENDPOINT                 │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 4. Default / Named Endpoint in litellm.json            │
+│    Resolved from ~/.divmora/config/litellm.json        │
+└────────────────────────────────────────────────────────┘
+```
 
 ---
 

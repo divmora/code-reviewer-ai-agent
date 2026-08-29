@@ -57,6 +57,11 @@ func main() {
 	inlineRule := flag.String("rule", "", "Ad-hoc inline rule instruction")
 	verbose := flag.Bool("verbose", false, "Enable verbose debug logging")
 
+	litellmBaseURL := flag.String("litellm-base-url", "", "Custom LiteLLM proxy base URL (or env LITELLM_BASE_URL)")
+	litellmAPIKey := flag.String("litellm-api-key", "", "Custom LiteLLM API key (or env LITELLM_API_KEY)")
+	litellmModel := flag.String("litellm-model", "", "Custom LiteLLM model identifier (or env LITELLM_MODEL)")
+	litellmEndpoint := flag.String("litellm-endpoint", "", "Named endpoint in ~/.divmora/config/litellm.json (or env LITELLM_ENDPOINT)")
+
 	flag.Parse()
 
 	// Setup logger
@@ -168,16 +173,20 @@ func main() {
 	// 3. Run AI Reviewer
 	rev := reviewer.NewReviewer(logger)
 	report, err := rev.RunReview(ctx, p, target, files, reviewer.ReviewOptions{
-		Workspace:    target.Workspace,
-		ProjectPath:  target.ProjectPath,
-		CustomPrompt: *customPrompt,
-		RulesJSON:    *rulesJSON,
-		RulesFile:    *rulesFile,
-		InlineRule:   *inlineRule,
-		Profile:      *profile,
-		HeadSHA:      target.HeadSHA,
-		MaxComments:  *maxComments,
-		Verbose:      *verbose,
+		Workspace:       target.Workspace,
+		ProjectPath:     target.ProjectPath,
+		CustomPrompt:    *customPrompt,
+		RulesJSON:       *rulesJSON,
+		RulesFile:       *rulesFile,
+		InlineRule:      *inlineRule,
+		Profile:         *profile,
+		HeadSHA:         target.HeadSHA,
+		MaxComments:     *maxComments,
+		Verbose:         *verbose,
+		LitellmBaseURL:  *litellmBaseURL,
+		LitellmAPIKey:   *litellmAPIKey,
+		LitellmModel:    *litellmModel,
+		LitellmEndpoint: *litellmEndpoint,
 	})
 
 	if err != nil {

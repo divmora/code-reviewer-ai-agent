@@ -37,16 +37,20 @@ func NewReviewer(logger *slog.Logger) *Reviewer {
 
 // ReviewOptions holds all parameters for a review execution.
 type ReviewOptions struct {
-	Workspace    string
-	ProjectPath  string
-	CustomPrompt string
-	RulesJSON    string
-	RulesFile    string
-	InlineRule   string
-	Profile      string
-	HeadSHA      string
-	MaxComments  int
-	Verbose      bool
+	Workspace       string
+	ProjectPath     string
+	CustomPrompt    string
+	RulesJSON       string
+	RulesFile       string
+	InlineRule      string
+	Profile         string
+	HeadSHA         string
+	MaxComments     int
+	Verbose         bool
+	LitellmBaseURL  string
+	LitellmAPIKey   string
+	LitellmModel    string
+	LitellmEndpoint string
 }
 
 type fileContextBlock struct {
@@ -221,9 +225,13 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 
 func (r *Reviewer) executeSingleTurn(ctx context.Context, opts ReviewOptions, prompt string, modifiedPaths []string) (*model.ReviewReport, error) {
 	agentCfg := agent.NewReviewAgentConfig(agent.ConfigOptions{
-		Workspace: opts.Workspace,
-		Verbose:   opts.Verbose,
-		Logger:    r.logger,
+		Workspace:       opts.Workspace,
+		Verbose:         opts.Verbose,
+		Logger:          r.logger,
+		LitellmBaseURL:  opts.LitellmBaseURL,
+		LitellmAPIKey:   opts.LitellmAPIKey,
+		LitellmModel:    opts.LitellmModel,
+		LitellmEndpoint: opts.LitellmEndpoint,
 	})
 
 	aiAgent, err := adk.NewAgent(agentCfg)

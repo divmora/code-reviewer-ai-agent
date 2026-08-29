@@ -68,6 +68,38 @@ The agent is instantiated using `adk.NewLocalAgentConfig()`:
 - **Safety Policy**:
   - `policy.AllowAll()` with `Capabilities.RunCommand = false` for read-only static analysis safety.
 
+### 2.1 Model & LiteLLM Resolution Priority Flow
+
+```
+┌────────────────────────────────────────────────────────┐
+│ 1. CLI Flags (Highest Priority)                        │
+│    --litellm-base-url / --litellm-api-key              │
+│    --litellm-model    / --litellm-endpoint             │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 2. Tool-Specific Environment Variables                 │
+│    CODE_REVIEWER_LITELLM_BASE_URL                      │
+│    CODE_REVIEWER_LITELLM_API_KEY                       │
+│    CODE_REVIEWER_LITELLM_MODEL                         │
+│    CODE_REVIEWER_LITELLM_ENDPOINT                      │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 3. Generic LiteLLM Environment Variables               │
+│    LITELLM_BASE_URL / LITELLM_API_KEY                  │
+│    LITELLM_MODEL    / LITELLM_ENDPOINT                 │
+└───────────────────────────┬────────────────────────────┘
+                            │ (if omitted)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│ 4. Default / Named Endpoint in litellm.json            │
+│    Resolved from ~/.divmora/config/litellm.json        │
+└────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## 3. Core Subsystems
