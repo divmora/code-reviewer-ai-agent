@@ -1,8 +1,0 @@
-{
-  "packages": {
-    ".": {
-      "release-type": "go",
-      "package-name": "github.com/divmora/code-reviewer-ai-agent"
-    }
-  }
-}

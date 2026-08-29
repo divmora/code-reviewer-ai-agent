@@ -25,6 +25,7 @@ import (
 
 	"github.com/divmora/code-reviewer-ai-agent/pkg/provider"
 	"github.com/divmora/code-reviewer-ai-agent/pkg/reviewer"
+	"github.com/divmora/code-reviewer-ai-agent/pkg/version"
 )
 
 func main() {
@@ -62,7 +63,15 @@ func main() {
 	litellmModel := flag.String("litellm-model", "", "Custom LiteLLM model identifier (or env LITELLM_MODEL)")
 	litellmEndpoint := flag.String("litellm-endpoint", "", "Named endpoint in ~/.divmora/config/litellm.json (or env LITELLM_ENDPOINT)")
 
+	versionFlag := flag.Bool("version", false, "Print version information and exit")
+	shortVersionFlag := flag.Bool("v", false, "Print version information and exit")
+
 	flag.Parse()
+
+	if *versionFlag || *shortVersionFlag {
+		fmt.Println(version.Get().String())
+		os.Exit(0)
+	}
 
 	// Setup logger
 	logLevel := slog.LevelInfo
