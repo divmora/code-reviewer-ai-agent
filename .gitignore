@@ -1,0 +1,32 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+code-reviewer
+
+# Test artifacts
+*.test
+*.out
+coverage.html
+coverage.out
+
+# IDE & OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment & local credentials
+.env
+.env.*
+*.local
+reviewed_shas.json
+
+# LocalHarness runtime & logs
+.divmora/
+.agents/
