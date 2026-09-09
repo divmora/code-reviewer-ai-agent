@@ -1,0 +1,12 @@
+services:
+  code-reviewer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ~/.divmora:/root/.divmora
+      - .:/workspace
+    environment:
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - BITBUCKET_TOKEN=${BITBUCKET_TOKEN:-}

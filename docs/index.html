@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Reviewer AI Agent — Documentation</title>
+  <meta name="description" content="Autonomous AI Code Reviewer Agent powered by Divmora LocalHarness SDK for GitLab, GitHub, Bitbucket, and Local Workspaces.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            },
+            dark: {
+              bg: '#0b0f19',
+              card: '#111827',
+              border: '#1f2937',
+              muted: '#374151',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    pre, code { font-family: 'Fira Code', monospace; }
+    .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0b0f19; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+  </style>
+</head>
+<body class="bg-dark-bg text-slate-200 antialiased min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-dark-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+          <i class="fa-solid fa-code-compare text-lg"></i>
+        </div>
+        <div>
+          <span class="font-bold text-lg text-white tracking-tight">Code Reviewer <span class="text-brand-400">AI Agent</span></span>
+          <span class="ml-2 text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 font-mono">v1.0.0</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <a href="https://deepwiki.com/divmora/code-reviewer-ai-agent" target="_blank" class="hidden sm:inline-flex items-center hover:opacity-90 transition">
+          <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" class="h-6">
+        </a>
+        <a href="https://github.com/divmora/code-reviewer-ai-agent" target="_blank" class="p-2 rounded-lg bg-dark-card border border-dark-border hover:border-slate-600 text-slate-300 hover:text-white transition flex items-center space-x-2 text-sm">
+          <i class="fa-brands fa-github text-base"></i>
+          <span class="hidden md:inline font-medium">GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex py-8 gap-8 w-full">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 flex-shrink-0 hidden lg:block">
+      <div class="sticky top-24 space-y-8">
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-3">Getting Started</h3>
+          <nav class="space-y-1 text-sm font-medium">
+            <a href="#overview" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-bolt mr-2 text-brand-400 w-5"></i>Overview</a>
+            <a href="#quickstart" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-terminal mr-2 text-brand-400 w-5"></i>Quickstart CLI</a>
+            <a href="#docker" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-brands fa-docker mr-2 text-brand-400 w-5"></i>Docker Container</a>
+          </nav>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-3">CI/CD Integrations</h3>
+          <nav class="space-y-1 text-sm font-medium">
+            <a href="#gitlab-ci" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-brands fa-gitlab mr-2 text-orange-400 w-5"></i>GitLab CI/CD</a>
+            <a href="#github-actions" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-brands fa-github mr-2 text-purple-400 w-5"></i>GitHub Actions</a>
+            <a href="#bitbucket-pipelines" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-brands fa-bitbucket mr-2 text-blue-400 w-5"></i>Bitbucket Pipelines</a>
+          </nav>
+        </div>
+
+        <div>
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 px-3">Configuration & Core</h3>
+          <nav class="space-y-1 text-sm font-medium">
+            <a href="#litellm-priority" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-key mr-2 text-emerald-400 w-5"></i>LiteLLM Priority Flow</a>
+            <a href="#profiles" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-sliders mr-2 text-amber-400 w-5"></i>Sensitivity Profiles</a>
+            <a href="#rules" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-list-check mr-2 text-pink-400 w-5"></i>Custom Rules (.yaml)</a>
+            <a href="#cli-flags" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-dark-card hover:text-white transition"><i class="fa-solid fa-flag mr-2 text-cyan-400 w-5"></i>CLI Flags Reference</a>
+          </nav>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Body -->
+    <main class="flex-1 min-w-0 space-y-16">
+
+      <!-- Hero Section -->
+      <section id="overview" class="space-y-6">
+        <div class="space-y-4">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-medium">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Context-Aware Multi-VCS AI Code Reviewer</span>
+          </div>
+          <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+            Automated Code Reviews with <span class="bg-gradient-to-r from-brand-400 to-indigo-300 bg-clip-text text-transparent">AST Scope Precision</span>
+          </h1>
+          <p class="text-lg text-slate-400 max-w-3xl leading-relaxed">
+            The Code Reviewer AI Agent emulates the precision of CodeRabbit. Built with the <strong>Divmora LocalHarness SDK</strong>, it analyzes pull requests across GitLab, GitHub, Bitbucket, and local workspaces—producing structured scorecards, file walkthroughs, and 1-click committable suggestions directly on changed lines.
+          </p>
+        </div>
+
+        <!-- Key Feature Badges -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div class="p-4 rounded-xl bg-dark-card border border-dark-border space-y-2">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-code-branch"></i>
+            </div>
+            <h4 class="font-semibold text-white text-sm">Commit-Scoped Net Diff</h4>
+            <p class="text-xs text-slate-400">Isolates author feature commits, completely filtering out merge-drift noise from master/pre-prod.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-dark-card border border-dark-border space-y-2">
+            <div class="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-400 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h4 class="font-semibold text-white text-sm">Anti-Hallucination AST</h4>
+            <p class="text-xs text-slate-400">Native Go AST & multi-language scope analyzer trims context to enclosing definitions with line decoration.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-dark-card border border-dark-border space-y-2">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">
+              <i class="fa-solid fa-comment-dots"></i>
+            </div>
+            <h4 class="font-semibold text-white text-sm">1-Click Inline Suggestions</h4>
+            <p class="text-xs text-slate-400">Publishes GitHub & GitLab committable replacement blocks with scoped quality badges.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Architecture Flow Diagram -->
+      <section class="space-y-4">
+        <h2 class="text-xl font-bold text-white flex items-center"><i class="fa-solid fa-diagram-project mr-2 text-brand-400"></i>Engine Architecture</h2>
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border overflow-x-auto">
+          <pre class="mermaid text-center">
+graph TD
+    A[VCS Ingress: GitLab / GitHub / Bitbucket] --> B[Smart Diff & Commit Isolator]
+    B --> C[Noise Filter & Secrets Pre-Scanner]
+    C --> D[AST Scope Slicer: Go / Python / TS / PHP / Java]
+    D --> E[Divmora LocalHarness SDK]
+    E --> F[Review Evaluator & Comment Budgeter]
+    F --> G[VCS Publisher: Inline Suggestions, Scorecards, Labels]
+          </pre>
+        </div>
+      </section>
+
+      <!-- CI/CD Integrations Section -->
+      <section id="gitlab-ci" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-brands fa-gitlab text-2xl text-orange-400"></i>
+            <h2 class="text-2xl font-bold text-white">GitLab CI/CD Integration</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            Automatically review GitLab Merge Requests (both GitLab.com SaaS and Self-Hosted instances) on every commit.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-dark-border pb-3">
+            <span class="font-mono flex items-center"><i class="fa-regular fa-file-code mr-2 text-orange-400"></i>.gitlab-ci.yml</span>
+            <button onclick="copyCode('gitlab-code')" class="hover:text-white px-2 py-1 bg-dark-muted rounded text-xs transition flex items-center">
+              <i class="fa-regular fa-copy mr-1"></i>Copy
+            </button>
+          </div>
+          <pre id="gitlab-code" class="text-xs font-mono text-slate-300 overflow-x-auto leading-relaxed"><code>stages:
+  - test
+  - review
+
+# AI Code Review runs in parallel with test, non-blocking
+ai-code-review:
+  stage: review
+  image: ghcr.io/divmora/code-reviewer-ai-agent:latest
+  rules:
+    # Run on Merge Requests (excluding draft / WIP MRs)
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TITLE !~ /^(Draft|WIP):/i'
+  allow_failure: true
+  variables:
+    # Masked CI/CD Variables configured in Settings > CI/CD > Variables
+    CODE_REVIEWER_LITELLM_BASE_URL: "$LITELLM_BASE_URL"
+    CODE_REVIEWER_LITELLM_API_KEY: "$LITELLM_API_KEY"
+    CODE_REVIEWER_LITELLM_MODEL: "workers-ai/@cf/zai-org/glm-5.2"
+  script:
+    - code-reviewer \
+        --url "$CI_MERGE_REQUEST_PROJECT_URL/-/merge_requests/$CI_MERGE_REQUEST_IID" \
+        --token "$GITLAB_TOKEN" \
+        --skip-tls-verify \
+        --post \
+        --update-description \
+        --update-labels</code></pre>
+        </div>
+
+        <div class="bg-indigo-950/30 border border-brand-500/30 rounded-xl p-4 text-xs text-slate-300 space-y-2">
+          <div class="font-semibold text-brand-300 flex items-center"><i class="fa-solid fa-circle-info mr-2"></i>GitLab CI Best Practices:</div>
+          <ul class="list-disc list-inside space-y-1 text-slate-400">
+            <li><strong>Allow Failure</strong>: Setting <code class="text-slate-200">allow_failure: true</code> ensures the AI review provides rich insights without blocking deployments.</li>
+            <li><strong>Self-Hosted SSL</strong>: Use <code class="text-slate-200">--skip-tls-verify</code> for internal enterprise GitLab servers with private CA certificates.</li>
+            <li><strong>Watermark Dedup</strong>: Automatically skips review if the target commit SHA has already been evaluated.</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- GitHub Actions Section -->
+      <section id="github-actions" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-brands fa-github text-2xl text-purple-400"></i>
+            <h2 class="text-2xl font-bold text-white">GitHub Actions Integration</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            Run automated reviews on Pull Request creation and code synchronization using GitHub Actions.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-dark-border pb-3">
+            <span class="font-mono flex items-center"><i class="fa-regular fa-file-code mr-2 text-purple-400"></i>.github/workflows/ai-review.yml</span>
+            <button onclick="copyCode('github-code')" class="hover:text-white px-2 py-1 bg-dark-muted rounded text-xs transition flex items-center">
+              <i class="fa-regular fa-copy mr-1"></i>Copy
+            </button>
+          </div>
+          <pre id="github-code" class="text-xs font-mono text-slate-300 overflow-x-auto leading-relaxed"><code>name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+
+    steps:
+      - name: Run Code Reviewer Agent
+        uses: docker://ghcr.io/divmora/code-reviewer-ai-agent:latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODE_REVIEWER_LITELLM_BASE_URL: ${{ secrets.LITELLM_BASE_URL }}
+          CODE_REVIEWER_LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          CODE_REVIEWER_LITELLM_MODEL: "workers-ai/@cf/zai-org/glm-5.2"
+        with:
+          args: >-
+            --url ${{ github.event.pull_request.html_url }}
+            --token ${{ secrets.GITHUB_TOKEN }}
+            --post</code></pre>
+        </div>
+      </section>
+
+      <!-- Bitbucket Pipelines Section -->
+      <section id="bitbucket-pipelines" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-brands fa-bitbucket text-2xl text-blue-400"></i>
+            <h2 class="text-2xl font-bold text-white">Bitbucket Pipelines Integration</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            Automate code review feedback on pull requests inside Bitbucket Cloud or Data Center.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 border-b border-dark-border pb-3">
+            <span class="font-mono flex items-center"><i class="fa-regular fa-file-code mr-2 text-blue-400"></i>bitbucket-pipelines.yml</span>
+            <button onclick="copyCode('bitbucket-code')" class="hover:text-white px-2 py-1 bg-dark-muted rounded text-xs transition flex items-center">
+              <i class="fa-regular fa-copy mr-1"></i>Copy
+            </button>
+          </div>
+          <pre id="bitbucket-code" class="text-xs font-mono text-slate-300 overflow-x-auto leading-relaxed"><code>pipelines:
+  pull-requests:
+    '**':
+      - step:
+          name: AI Code Review
+          image: ghcr.io/divmora/code-reviewer-ai-agent:latest
+          script:
+            - code-reviewer \
+                --url "$BITBUCKET_GIT_HTTP_ORIGIN/pull-requests/$BITBUCKET_PR_ID" \
+                --token "$BITBUCKET_TOKEN" \
+                --post</code></pre>
+        </div>
+      </section>
+
+      <!-- LiteLLM 4-Tier Configuration Priority Section -->
+      <section id="litellm-priority" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-key text-2xl text-emerald-400"></i>
+            <h2 class="text-2xl font-bold text-white">Model & LiteLLM Resolution Hierarchy</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            The agent resolves LiteLLM credentials, models, and endpoints following a 4-tier resolution chain:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-3">
+            <span class="text-xs font-bold text-brand-400 uppercase tracking-wide">1. CLI Flags (Highest)</span>
+            <ul class="text-xs font-mono text-slate-300 space-y-1.5">
+              <li><code class="text-indigo-400">--litellm-base-url</code></li>
+              <li><code class="text-indigo-400">--litellm-api-key</code></li>
+              <li><code class="text-indigo-400">--litellm-model</code></li>
+              <li><code class="text-indigo-400">--litellm-endpoint</code></li>
+            </ul>
+          </div>
+
+          <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-3">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">2. Tool-Specific Env (Scoped)</span>
+            <ul class="text-xs font-mono text-slate-300 space-y-1.5">
+              <li><code class="text-emerald-400">CODE_REVIEWER_LITELLM_BASE_URL</code></li>
+              <li><code class="text-emerald-400">CODE_REVIEWER_LITELLM_API_KEY</code></li>
+              <li><code class="text-emerald-400">CODE_REVIEWER_LITELLM_MODEL</code></li>
+              <li><code class="text-emerald-400">CODE_REVIEWER_LITELLM_ENDPOINT</code></li>
+            </ul>
+          </div>
+
+          <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-3">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wide">3. Generic LiteLLM Env</span>
+            <ul class="text-xs font-mono text-slate-300 space-y-1.5">
+              <li><code class="text-blue-400">LITELLM_BASE_URL</code></li>
+              <li><code class="text-blue-400">LITELLM_API_KEY</code></li>
+              <li><code class="text-blue-400">LITELLM_MODEL</code></li>
+              <li><code class="text-blue-400">LITELLM_ENDPOINT</code></li>
+            </ul>
+          </div>
+
+          <div class="p-5 rounded-xl bg-dark-card border border-dark-border space-y-3">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wide">4. Local Config File</span>
+            <ul class="text-xs font-mono text-slate-300 space-y-1.5">
+              <li><code class="text-amber-400">~/.divmora/config/litellm.json</code></li>
+              <li>Named endpoint or default endpoint resolved automatically.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sensitivity Profiles Section -->
+      <section id="profiles" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-sliders text-2xl text-amber-400"></i>
+            <h2 class="text-2xl font-bold text-white">Review Sensitivity Profiles</h2>
+          </div>
+          <p class="text-sm text-slate-400">
+            Control review tone and strictness via the <code class="text-slate-200">--profile</code> flag:
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="p-4 rounded-xl bg-dark-card border border-dark-border space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-400 text-sm">chill</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300">Light</span>
+            </div>
+            <p class="text-xs text-slate-400">Focuses strictly on critical errors and security flaws. Ignores styling and minor nits.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-dark-card border border-brand-500/30 space-y-2 relative">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-brand-400 text-sm">balanced (Default)</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-medium">Standard</span>
+            </div>
+            <p class="text-xs text-slate-400">Thorough and practical. Catches edge cases, security, performance, and maintainability issues.</p>
+          </div>
+
+          <div class="p-4 rounded-xl bg-dark-card border border-dark-border space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-pink-400 text-sm">assertive</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-pink-500/10 text-pink-300">Strict</span>
+            </div>
+            <p class="text-xs text-slate-400">Strict audit mode. Flags subtle bugs, design anti-patterns, test gaps, and typing inconsistencies.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLI Flags Reference -->
+      <section id="cli-flags" class="space-y-6 pt-6 border-t border-dark-border">
+        <div class="space-y-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-flag text-2xl text-cyan-400"></i>
+            <h2 class="text-2xl font-bold text-white">CLI Flags Reference</h2>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-dark-border">
+          <table class="w-full text-left text-xs text-slate-300 font-mono">
+            <thead class="bg-dark-muted/50 text-slate-200 uppercase tracking-wider text-[11px]">
+              <tr>
+                <th class="px-4 py-3">Flag</th>
+                <th class="px-4 py-3">Default</th>
+                <th class="px-4 py-3">Description</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-dark-border bg-dark-card">
+              <tr><td class="px-4 py-2.5 text-brand-400">--url</td><td class="px-4 py-2.5 text-slate-500">""</td><td class="px-4 py-2.5 text-slate-300 font-sans">PR / MR URL (GitLab, GitHub, Bitbucket)</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--workspace</td><td class="px-4 py-2.5 text-slate-500">"."</td><td class="px-4 py-2.5 text-slate-300 font-sans">Local workspace directory to review</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--diff</td><td class="px-4 py-2.5 text-slate-500">false</td><td class="px-4 py-2.5 text-slate-300 font-sans">Review uncommitted local git changes</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--token</td><td class="px-4 py-2.5 text-slate-500">$TOKEN</td><td class="px-4 py-2.5 text-slate-300 font-sans">VCS API access token</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--post</td><td class="px-4 py-2.5 text-slate-500">false</td><td class="px-4 py-2.5 text-slate-300 font-sans">Post inline comments, scorecard description, and labels</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--skip-tls-verify</td><td class="px-4 py-2.5 text-slate-500">false</td><td class="px-4 py-2.5 text-slate-300 font-sans">Skip TLS verification for internal GitLab self-hosted instances</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--profile</td><td class="px-4 py-2.5 text-slate-500">"balanced"</td><td class="px-4 py-2.5 text-slate-300 font-sans">Sensitivity profile: chill, balanced, assertive</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--max-comments</td><td class="px-4 py-2.5 text-slate-500">15</td><td class="px-4 py-2.5 text-slate-300 font-sans">Comment budget cap prioritizing High > Medium > Low</td></tr>
+              <tr><td class="px-4 py-2.5 text-brand-400">--version, -v</td><td class="px-4 py-2.5 text-slate-500">false</td><td class="px-4 py-2.5 text-slate-300 font-sans">Print version metadata and exit</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-dark-border mt-16 bg-dark-card/50 py-8 text-center text-xs text-slate-500 space-y-2">
+    <div>Built with <span class="text-red-500">♥</span> by <a href="https://github.com/divmora" class="text-slate-300 hover:text-white transition">Divmora</a> using the LocalHarness SDK.</div>
+    <div>Licensed under the <a href="https://github.com/divmora/code-reviewer-ai-agent/blob/main/LICENSE" class="text-slate-300 hover:text-white transition">Apache License 2.0</a>.</div>
+  </footer>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+
+    function copyCode(elementId) {
+      const code = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+  </script>
+</body>
+</html>
