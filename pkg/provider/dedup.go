@@ -37,10 +37,3 @@ func ShouldSkipReview(currentSHA, description string, force bool) (bool, string)
 
 	return false, ""
 }
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

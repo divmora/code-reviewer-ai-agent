@@ -10,7 +10,7 @@ import (
 	"github.com/divmora/localharness/adk/policy"
 )
 
-const localharnessVersion = "0.3.0"
+const localharnessVersion = "0.4.0"
 
 // ConfigOptions holds settings for agent initialization.
 type ConfigOptions struct {

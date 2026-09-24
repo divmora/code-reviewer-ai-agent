@@ -48,13 +48,3 @@ func BuildUpdatedLabels(currentLabels []string, report *model.ReviewReport) []st
 
 	return updated
 }
-
-// GetScoreColor returns color hex for a given 0-100 score.
-func GetScoreColor(score int) string {
-	if score >= 80 {
-		return "#2da44e" // Green
-	} else if score >= 60 {
-		return "#d97706" // Yellow/Amber
-	}
-	return "#cf222e" // Red
-}

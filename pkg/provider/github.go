@@ -181,18 +181,12 @@ func (p *GitHubProvider) PostReview(ctx context.Context, target *TargetContext, 
 	var comments []map[string]any
 	if opts.PostInlines && len(report.Issues) > 0 {
 		for _, issue := range report.Issues {
-			var body strings.Builder
-			body.WriteString(fmt.Sprintf("**[%s] %s**\n\n%s\n", strings.ToUpper(string(issue.Severity)), issue.Category, issue.Description))
-
-			if issue.Suggestion != "" {
-				body.WriteString(fmt.Sprintf("\n```suggestion\n%s\n```\n", issue.Suggestion))
-			}
-
+			commentBody := FormatInlineComment(issue, p.Type())
 			comments = append(comments, map[string]any{
 				"path": issue.Filepath,
 				"line": issue.Line,
 				"side": "RIGHT",
-				"body": body.String(),
+				"body": commentBody,
 			})
 		}
 	}

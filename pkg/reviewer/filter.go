@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/divmora/code-reviewer-ai-agent/pkg/git"
+	"github.com/divmora/code-reviewer-ai-agent/pkg/rules"
 )
 
 var defaultNoiseFiles = []string{
@@ -70,17 +71,8 @@ func FilterDiffFiles(files []*git.FileDiff, customIgnores []string) ([]*git.File
 		}
 
 		// Check custom ignores
-		if len(customIgnores) > 0 {
-			ignored := false
-			for _, pat := range customIgnores {
-				if matched, _ := filepath.Match(pat, base); matched {
-					ignored = true
-					break
-				}
-			}
-			if ignored {
-				continue
-			}
+		if len(customIgnores) > 0 && rules.IsPathIgnored(path, customIgnores) {
+			continue
 		}
 
 		// Discard files with zero net changes (unless it is an explicit file deletion or raw diff is present)

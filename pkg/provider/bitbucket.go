@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/divmora/code-reviewer-ai-agent/pkg/git"
@@ -173,34 +174,66 @@ func (p *BitbucketProvider) PostReview(ctx context.Context, target *TargetContex
 		}
 	}
 
-	// 2. Post Inline Comments
+	// 2. Post Inline Comments (concurrently with bounded workers)
 	if opts.PostInlines && len(report.Issues) > 0 {
-		for _, issue := range report.Issues {
-			var body strings.Builder
-			body.WriteString(fmt.Sprintf("**[%s] %s**\n\n%s\n", strings.ToUpper(string(issue.Severity)), issue.Category, issue.Description))
-			if issue.Suggestion != "" {
-				body.WriteString(fmt.Sprintf("\n```\n%s\n```\n", issue.Suggestion))
-			}
-
-			payload := map[string]any{
-				"content": map[string]string{"raw": body.String()},
-			}
-			if issue.Filepath != "" && issue.Line > 0 {
-				payload["inline"] = map[string]any{
-					"to":   issue.Line,
-					"path": issue.Filepath,
-				}
-			}
-
-			commURL := p.apiURL(fmt.Sprintf("repositories/%s/%s/pullrequests/%d/comments", target.Owner, target.Repo, target.PRID))
-			resp, err := p.doRequest(ctx, "POST", commURL, target.Token, payload)
-			if err == nil && resp.StatusCode == http.StatusCreated {
-				resp.Body.Close()
-				res.CommentsPosted++
-			} else if resp != nil {
-				resp.Body.Close()
-			}
+		var mu sync.Mutex
+		concurrency := 5
+		if len(report.Issues) < concurrency {
+			concurrency = len(report.Issues)
 		}
+		issueChan := make(chan model.ReviewIssue, len(report.Issues))
+		for _, issue := range report.Issues {
+			issueChan <- issue
+		}
+		close(issueChan)
+
+		var wg sync.WaitGroup
+		for w := 0; w < concurrency; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for issue := range issueChan {
+					commentBody := FormatInlineComment(issue, p.Type())
+					payload := map[string]any{
+						"content": map[string]string{"raw": commentBody},
+					}
+					if issue.Filepath != "" && issue.Line > 0 {
+						payload["inline"] = map[string]any{
+							"to":   issue.Line,
+							"path": issue.Filepath,
+						}
+					}
+
+					commURL := p.apiURL(fmt.Sprintf("repositories/%s/%s/pullrequests/%d/comments", target.Owner, target.Repo, target.PRID))
+					resp, err := p.doRequest(ctx, "POST", commURL, target.Token, payload)
+					if err == nil && resp.StatusCode == http.StatusCreated {
+						resp.Body.Close()
+						mu.Lock()
+						res.CommentsPosted++
+						mu.Unlock()
+					} else {
+						if resp != nil {
+							resp.Body.Close()
+						}
+						// Fallback to top-level comment note
+						fallbackBody := fmt.Sprintf("**File:** `%s:%d`\n\n%s", issue.Filepath, issue.Line, commentBody)
+						fbPayload := map[string]any{
+							"content": map[string]string{"raw": fallbackBody},
+						}
+						fbResp, fbErr := p.doRequest(ctx, "POST", commURL, target.Token, fbPayload)
+						if fbErr == nil && fbResp.StatusCode == http.StatusCreated {
+							fbResp.Body.Close()
+							mu.Lock()
+							res.NotesPosted++
+							mu.Unlock()
+						} else if fbResp != nil {
+							fbResp.Body.Close()
+						}
+					}
+				}
+			}()
+		}
+		wg.Wait()
 	}
 
 	return res, nil

@@ -194,3 +194,22 @@ func verdictEmoji(v string) string {
 		return "💬"
 	}
 }
+
+// FormatInlineComment formats an individual review issue into a provider-specific markdown comment.
+func FormatInlineComment(issue model.ReviewIssue, providerType string) string {
+	var body strings.Builder
+	body.WriteString(fmt.Sprintf("**[%s] %s**\n\n%s\n", strings.ToUpper(string(issue.Severity)), issue.Category, issue.Description))
+
+	if issue.Suggestion != "" {
+		switch strings.ToLower(providerType) {
+		case "gitlab":
+			body.WriteString(fmt.Sprintf("\n```suggestion:-0+0\n%s\n```\n", issue.Suggestion))
+		case "github":
+			body.WriteString(fmt.Sprintf("\n```suggestion\n%s\n```\n", issue.Suggestion))
+		default:
+			body.WriteString(fmt.Sprintf("\n```\n%s\n```\n", issue.Suggestion))
+		}
+	}
+
+	return body.String()
+}

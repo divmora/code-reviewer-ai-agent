@@ -61,6 +61,9 @@ This document serves as the **living product roadmap** for Code Reviewer AI Agen
 - [ ] **Streaming Inline Suggestion Publishing**
   - Stream reviewer findings as they are generated rather than batch-publishing after the entire review cycle completes.
 
+- [ ] **Linear Single-Pass AST Scope Extraction**
+  - Replace generic AST regex scanning with a full linear token-based syntax tree parser.
+
 ---
 
 ## 5. Notifications, Webhooks & Enterprise Tooling

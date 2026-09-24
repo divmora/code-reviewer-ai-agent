@@ -52,6 +52,8 @@ func ParseUnifiedDiff(diffContent string) []*FileDiff {
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(diffContent))
+	// Expand scanner buffer to allow large diff lines (e.g. minified code, SVGs, base64 data)
+	scanner.Buffer(make([]byte, 64*1024), 10*1024*1024)
 	currentNewLine := 0
 
 	for scanner.Scan() {

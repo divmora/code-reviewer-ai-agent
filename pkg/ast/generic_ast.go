@@ -77,8 +77,8 @@ func (p *GenericParser) getPythonScopes(lines []string, changedSet map[int]bool)
 		}
 
 		hasChange := false
-		for l := b.startLine; l <= endLine; l++ {
-			if changedSet[l] {
+		for l := range changedSet {
+			if l >= b.startLine && l <= endLine {
 				hasChange = true
 				break
 			}
@@ -140,8 +140,8 @@ func (p *GenericParser) getBraceScopes(lines []string, changedSet map[int]bool) 
 			}
 
 			hasChange := false
-			for l := lineNum; l <= endLine; l++ {
-				if changedSet[l] {
+			for l := range changedSet {
+				if l >= lineNum && l <= endLine {
 					hasChange = true
 					break
 				}

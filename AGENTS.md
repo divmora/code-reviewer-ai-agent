@@ -63,7 +63,7 @@ It emulates the thoroughness and precision of CodeRabbit, producing structured f
 
 The agent is instantiated using `adk.NewLocalAgentConfig()`:
 
-- **Binary Resolution**: Leverages `connection.BinaryResolver{Version: "0.3.0"}` to auto-detect and resolve the localharness binary.
+- **Binary Resolution**: Leverages `connection.BinaryResolver{Version: "0.4.0"}` to auto-detect and resolve the localharness binary.
 - **Middleware Pipeline**:
   - `middleware.NewTokenGuard(120000, 0.8, logger)`: Enforces token budgets and prevents context exhaustion.
   - `middleware.NewPatchToolArgs(logger)`: Normalizes tool arguments.

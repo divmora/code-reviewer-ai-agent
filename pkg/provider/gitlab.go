@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/divmora/code-reviewer-ai-agent/pkg/git"
@@ -165,7 +166,7 @@ func (p *GitLabProvider) FetchDiff(ctx context.Context, target *TargetContext) (
 		page++
 	}
 
-	// 2. Fetch MR Commits to identify author non-merge commits
+	// 2. Fetch MR Commits to check if intermediate merge commits exist
 	commitsURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/merge_requests/%d/commits?per_page=100", encodedPath, target.PRID))
 	hasMergeCommits := false
 	authorTouchedFiles := make(map[string]bool)
@@ -176,26 +177,54 @@ func (p *GitLabProvider) FetchDiff(ctx context.Context, target *TargetContext) (
 			ParentIDs []string `json:"parent_ids"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&mrCommits); err == nil {
+			var nonMergeCommitIDs []string
 			for _, c := range mrCommits {
 				if len(c.ParentIDs) > 1 {
 					hasMergeCommits = true
 				} else {
-					// Non-merge commit: fetch its touched files
-					cDiffURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/repository/commits/%s/diff", encodedPath, c.ID))
-					if cResp, cErr := p.doRequest(ctx, "GET", cDiffURL, target.Token, nil); cErr == nil {
-						var commitDiffs []diffItem
-						if err := json.NewDecoder(cResp.Body).Decode(&commitDiffs); err == nil {
-							for _, cd := range commitDiffs {
-								path := cd.NewPath
-								if path == "" {
-									path = cd.OldPath
+					nonMergeCommitIDs = append(nonMergeCommitIDs, c.ID)
+				}
+			}
+
+			// Only fetch commit diffs if merge commits were present and we need to filter external files
+			if hasMergeCommits && len(nonMergeCommitIDs) > 0 {
+				var mu sync.Mutex
+				concurrency := 5
+				if len(nonMergeCommitIDs) < concurrency {
+					concurrency = len(nonMergeCommitIDs)
+				}
+				cidChan := make(chan string, len(nonMergeCommitIDs))
+				for _, cid := range nonMergeCommitIDs {
+					cidChan <- cid
+				}
+				close(cidChan)
+
+				var wg sync.WaitGroup
+				for w := 0; w < concurrency; w++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for cid := range cidChan {
+							cDiffURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/repository/commits/%s/diff", encodedPath, cid))
+							if cResp, cErr := p.doRequest(ctx, "GET", cDiffURL, target.Token, nil); cErr == nil {
+								var commitDiffs []diffItem
+								if err := json.NewDecoder(cResp.Body).Decode(&commitDiffs); err == nil {
+									mu.Lock()
+									for _, cd := range commitDiffs {
+										path := cd.NewPath
+										if path == "" {
+											path = cd.OldPath
+										}
+										authorTouchedFiles[path] = true
+									}
+									mu.Unlock()
 								}
-								authorTouchedFiles[path] = true
+								cResp.Body.Close()
 							}
 						}
-						cResp.Body.Close()
-					}
+					}()
 				}
+				wg.Wait()
 			}
 		}
 		resp.Body.Close()
@@ -346,52 +375,69 @@ func (p *GitLabProvider) PostReview(ctx context.Context, target *TargetContext, 
 		}
 	}
 
-	// 3. Post Inline Discussions with Fallback to Notes
+	// 3. Post Inline Discussions with Fallback to Notes (concurrently with bounded workers)
 	if opts.PostInlines && len(report.Issues) > 0 {
-		for _, issue := range report.Issues {
-			var body strings.Builder
-			body.WriteString(fmt.Sprintf("**[%s] %s**\n\n%s\n", strings.ToUpper(string(issue.Severity)), issue.Category, issue.Description))
-
-			if issue.Suggestion != "" {
-				body.WriteString(fmt.Sprintf("\n```suggestion:-0+0\n%s\n```\n", issue.Suggestion))
-			}
-
-			payload := map[string]any{
-				"body": body.String(),
-			}
-
-			if target.BaseSHA != "" && target.HeadSHA != "" && issue.Filepath != "" && issue.Line > 0 {
-				payload["position"] = map[string]any{
-					"base_sha":      target.BaseSHA,
-					"start_sha":     target.StartSHA,
-					"head_sha":      target.HeadSHA,
-					"position_type": "text",
-					"new_path":      issue.Filepath,
-					"new_line":      issue.Line,
-				}
-			}
-
-			discURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/merge_requests/%d/discussions", encodedPath, target.PRID))
-			resp, err := p.doRequest(ctx, "POST", discURL, target.Token, payload)
-			if err == nil && resp.StatusCode == http.StatusCreated {
-				resp.Body.Close()
-				res.CommentsPosted++
-			} else {
-				if resp != nil {
-					resp.Body.Close()
-				}
-				// Fallback to top-level note
-				fallbackBody := fmt.Sprintf("**File:** `%s:%d`\n\n%s", issue.Filepath, issue.Line, body.String())
-				noteURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/merge_requests/%d/notes", encodedPath, target.PRID))
-				noteResp, nErr := p.doRequest(ctx, "POST", noteURL, target.Token, map[string]any{"body": fallbackBody})
-				if nErr == nil && noteResp.StatusCode == http.StatusCreated {
-					noteResp.Body.Close()
-					res.NotesPosted++
-				} else if noteResp != nil {
-					noteResp.Body.Close()
-				}
-			}
+		var mu sync.Mutex
+		concurrency := 5
+		if len(report.Issues) < concurrency {
+			concurrency = len(report.Issues)
 		}
+		issueChan := make(chan model.ReviewIssue, len(report.Issues))
+		for _, issue := range report.Issues {
+			issueChan <- issue
+		}
+		close(issueChan)
+
+		var wg sync.WaitGroup
+		for w := 0; w < concurrency; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for issue := range issueChan {
+					commentBody := FormatInlineComment(issue, p.Type())
+					payload := map[string]any{
+						"body": commentBody,
+					}
+
+					if target.BaseSHA != "" && target.HeadSHA != "" && issue.Filepath != "" && issue.Line > 0 {
+						payload["position"] = map[string]any{
+							"base_sha":      target.BaseSHA,
+							"start_sha":     target.StartSHA,
+							"head_sha":      target.HeadSHA,
+							"position_type": "text",
+							"new_path":      issue.Filepath,
+							"new_line":      issue.Line,
+						}
+					}
+
+					discURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/merge_requests/%d/discussions", encodedPath, target.PRID))
+					resp, err := p.doRequest(ctx, "POST", discURL, target.Token, payload)
+					if err == nil && resp.StatusCode == http.StatusCreated {
+						resp.Body.Close()
+						mu.Lock()
+						res.CommentsPosted++
+						mu.Unlock()
+					} else {
+						if resp != nil {
+							resp.Body.Close()
+						}
+						// Fallback to top-level note
+						fallbackBody := fmt.Sprintf("**File:** `%s:%d`\n\n%s", issue.Filepath, issue.Line, commentBody)
+						noteURL := p.apiURL(target.BaseURL, fmt.Sprintf("projects/%s/merge_requests/%d/notes", encodedPath, target.PRID))
+						noteResp, nErr := p.doRequest(ctx, "POST", noteURL, target.Token, map[string]any{"body": fallbackBody})
+						if nErr == nil && noteResp.StatusCode == http.StatusCreated {
+							noteResp.Body.Close()
+							mu.Lock()
+							res.NotesPosted++
+							mu.Unlock()
+						} else if noteResp != nil {
+							noteResp.Body.Close()
+						}
+					}
+				}
+			}()
+		}
+		wg.Wait()
 	}
 
 	// 4. Auto-Approve if enabled

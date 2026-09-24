@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/divmora/code-reviewer-ai-agent/pkg/agent"
 	"github.com/divmora/code-reviewer-ai-agent/pkg/ast"
@@ -89,7 +90,55 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 	// 3. Pre-scan for hardcoded secrets
 	secretIssues := ScanForSecrets(filteredFiles)
 
-	// 4. Build AST-Scoped decorated context for each file
+	// 4. Pre-fetch file contents concurrently for non-deleted files (up to 10 workers)
+	fileContents := make(map[string]string)
+	var contentMu sync.Mutex
+	type fetchJob struct {
+		path string
+	}
+	var jobs []fetchJob
+	for _, file := range filteredFiles {
+		if !file.IsDeleted {
+			p := file.NewPath
+			if p == "" {
+				p = file.OldPath
+			}
+			if p != "" {
+				jobs = append(jobs, fetchJob{path: p})
+			}
+		}
+	}
+
+	if len(jobs) > 0 {
+		concurrency := 10
+		if len(jobs) < concurrency {
+			concurrency = len(jobs)
+		}
+		jobChan := make(chan fetchJob, len(jobs))
+		for _, j := range jobs {
+			jobChan <- j
+		}
+		close(jobChan)
+
+		var wg sync.WaitGroup
+		for w := 0; w < concurrency; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for j := range jobChan {
+					content, err := p.FetchFileContent(ctx, target, j.path, opts.HeadSHA)
+					if err == nil && content != "" {
+						contentMu.Lock()
+						fileContents[j.path] = content
+						contentMu.Unlock()
+					}
+				}
+			}()
+		}
+		wg.Wait()
+	}
+
+	// 5. Build AST-Scoped decorated context for each file
 	var modifiedPaths []string
 	var blocks []fileContextBlock
 
@@ -119,9 +168,8 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 			b.WriteString(fmt.Sprintf("(RENAMED from %s)\n", file.OldPath))
 		}
 
-		// Fetch file content at HeadSHA
-		fileContent, err := p.FetchFileContent(ctx, target, path, opts.HeadSHA)
-		if err == nil && fileContent != "" {
+		fileContent := fileContents[path]
+		if fileContent != "" {
 			scopedContent := ast.SliceFileContext(fileContent, path, file.ChangedLines)
 			b.WriteString("CODE (DECORATED WITH LINE NUMBERS):\n")
 			b.WriteString(scopedContent + "\n")
@@ -138,7 +186,7 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 		blocks = append(blocks, fileContextBlock{path: path, block: b.String()})
 	}
 
-	// 5. Partition blocks into batches that fit comfortably within LLM context
+	// 6. Partition blocks into batches that fit comfortably within LLM context
 	var batches [][]fileContextBlock
 	var currentBatch []fileContextBlock
 	currentBatchLen := 0
@@ -157,12 +205,15 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 	}
 
 	// Cap max batches for very large MRs (focus on top 5 most important batches)
+	totalBatchCount := len(batches)
+	hasBatchOverflow := false
 	if len(batches) > 5 {
+		hasBatchOverflow = true
 		r.logger.Info("large MR detected, reviewing primary batches", "total_batches", len(batches), "reviewing", 5)
 		batches = batches[:5]
 	}
 
-	// 6. Match active rules
+	// 7. Match active rules
 	activeRules := rules.FilterApplicableRules(ruleConfig.Reviews.Rules, modifiedPaths)
 
 	projectPath := opts.ProjectPath
@@ -170,7 +221,7 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 		projectPath = filepath.Base(opts.Workspace)
 	}
 
-	// 7. Execute AI review for each batch
+	// 8. Execute AI review for each batch
 	var batchReports []*model.ReviewReport
 
 	for i, batch := range batches {
@@ -206,7 +257,7 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 		return nil, fmt.Errorf("all review batches failed to return valid reports")
 	}
 
-	// 8. Merge batch reports into a single unified report
+	// 9. Merge batch reports into a single unified report
 	finalReport := mergeReports(batchReports, modifiedPaths, opts.HeadSHA)
 
 	// Merge pre-scanned secret issues
@@ -215,9 +266,14 @@ func (r *Reviewer) RunReview(ctx context.Context, p provider.RepoProvider, targe
 		finalReport.SecurityScore = min(finalReport.SecurityScore, 40)
 	}
 
-	// 9. Apply comment budgeting
+	// 10. Apply comment budgeting
 	topIssues, _ := ApplyCommentBudget(finalReport.Issues, opts.MaxComments)
 	finalReport.Issues = topIssues
+
+	if hasBatchOverflow {
+		notice := fmt.Sprintf("\n\n> ⚠️ **Notice**: This pull request is unusually large (%d batches). The review analyzed the primary 5 batches to avoid token exhaustion. Consider breaking this PR into smaller increments.", totalBatchCount)
+		finalReport.Summary += notice
+	}
 
 	finalReport.CalculateVerdict()
 	return finalReport, nil
@@ -363,11 +419,4 @@ func extractJSONReport(raw string) (*model.ReviewReport, error) {
 	}
 
 	return nil, fmt.Errorf("no valid JSON review report found in response")
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

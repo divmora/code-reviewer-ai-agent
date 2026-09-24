@@ -25,6 +25,17 @@ func TestFilterDiffFiles(t *testing.T) {
 	if len(binaryWarnings) != 1 || binaryWarnings[0] != "assets/logo.png" {
 		t.Errorf("expected logo.png in binary warnings, got %v", binaryWarnings)
 	}
+
+	// Test custom ignores with directory patterns
+	customFiles := []*git.FileDiff{
+		{NewPath: "vendor/lib/lib.go", RawDiff: "diff"},
+		{NewPath: "docs/architecture.md", RawDiff: "diff"},
+		{NewPath: "cmd/app/main.go", RawDiff: "diff"},
+	}
+	customFiltered, _ := FilterDiffFiles(customFiles, []string{"**/vendor/**", "docs/*"})
+	if len(customFiltered) != 1 || customFiltered[0].NewPath != "cmd/app/main.go" {
+		t.Errorf("expected only main.go after custom ignores, got %v", customFiltered)
+	}
 }
 
 func TestScanForSecrets(t *testing.T) {

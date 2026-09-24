@@ -55,8 +55,8 @@ func (p *GoParser) GetRelevantScopes(code string, changedLines []int) []ScopeRan
 }
 
 func (p *GoParser) hasChangedLine(start, end int, changedSet map[int]bool) bool {
-	for l := start; l <= end; l++ {
-		if changedSet[l] {
+	for l := range changedSet {
+		if l >= start && l <= end {
 			return true
 		}
 	}

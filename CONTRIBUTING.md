@@ -6,7 +6,7 @@ Thank you for your interest in contributing to **Code Reviewer AI Agent**! We we
 
 ## Development Prerequisites
 
-- **Go**: Version 1.25 or higher.
+- **Go**: Version 1.26 or higher.
 - **Git**: Modern version.
 - **Make**: Standard build automation tool.
 - **Docker & Docker Compose**: Optional for container build verification.

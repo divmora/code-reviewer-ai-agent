@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/divmora/code-reviewer-ai-agent/pkg/git"
 	"github.com/divmora/code-reviewer-ai-agent/pkg/provider"
 	"github.com/divmora/code-reviewer-ai-agent/pkg/reviewer"
 	"github.com/divmora/code-reviewer-ai-agent/pkg/version"
@@ -159,9 +160,12 @@ func main() {
 		}
 	}
 
-	// 2. Fetch Diff
+	// 2. Fetch Diff (with adaptive retry poller against stale VCS diff cache)
 	fmt.Printf("🔍 Fetching diff for %s (commit: %s)...\n", target.ProjectPath, target.HeadSHA)
-	files, _, err := p.FetchDiff(ctx, target)
+	files, err := provider.RetryOnStaleDiff(ctx, provider.DefaultConsistencyConfig(), func() ([]*git.FileDiff, string, error) {
+		diffFiles, _, fetchErr := p.FetchDiff(ctx, target)
+		return diffFiles, target.HeadSHA, fetchErr
+	}, target.HeadSHA)
 	if err != nil {
 		logger.Error("failed to fetch diff", "error", err)
 		os.Exit(1)

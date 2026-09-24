@@ -9,16 +9,17 @@ import (
 )
 
 var secretPatterns = []struct {
-	name    string
-	pattern *regexp.Regexp
+	name     string
+	pattern  *regexp.Regexp
+	keywords []string
 }{
-	{"AWS Access Key ID", regexp.MustCompile(`\bAKIA[0-9A-Z]{16}\b`)},
-	{"AWS Secret Key", regexp.MustCompile(`(?i)\baws_secret_access_key\s*=\s*['"][a-zA-Z0-9/+=]{40}['"]`)},
-	{"Generic API Key", regexp.MustCompile(`(?i)\b(api_key|apikey|secret_key|auth_token)\s*=\s*['"][a-zA-Z0-9_\-]{20,}['"]`)},
-	{"OpenAI API Key", regexp.MustCompile(`\bsk-[a-zA-Z0-9]{32,}\b`)},
-	{"GitHub Token", regexp.MustCompile(`\bgh[pousr]_[a-zA-Z0-9]{36,}\b`)},
-	{"GitLab Token", regexp.MustCompile(`\bglpat-[a-zA-Z0-9_\-]{20,}\b`)},
-	{"Private Key Header", regexp.MustCompile(`-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----`)},
+	{"AWS Access Key ID", regexp.MustCompile(`\bAKIA[0-9A-Z]{16}\b`), []string{"akia"}},
+	{"AWS Secret Key", regexp.MustCompile(`(?i)\baws_secret_access_key\s*=\s*['"][a-zA-Z0-9/+=]{40}['"]`), []string{"aws_secret_access_key"}},
+	{"Generic API Key", regexp.MustCompile(`(?i)\b(api_key|apikey|secret_key|auth_token)\s*=\s*['"][a-zA-Z0-9_\-]{20,}['"]`), []string{"api_key", "apikey", "secret_key", "auth_token"}},
+	{"OpenAI API Key", regexp.MustCompile(`\bsk-[a-zA-Z0-9]{32,}\b`), []string{"sk-"}},
+	{"GitHub Token", regexp.MustCompile(`\bgh[pousr]_[a-zA-Z0-9]{36,}\b`), []string{"ghp_", "gho_", "ghu_", "ghs_", "ghr_"}},
+	{"GitLab Token", regexp.MustCompile(`\bglpat-[a-zA-Z0-9_\-]{20,}\b`), []string{"glpat-"}},
+	{"Private Key Header", regexp.MustCompile(`-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----`), []string{"-----begin"}},
 }
 
 // ScanForSecrets inspects added lines in diffs for hardcoded credentials.
@@ -37,8 +38,20 @@ func ScanForSecrets(files []*git.FileDiff) []model.ReviewIssue {
 			for _, line := range hunk.Lines {
 				if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
 					content := strings.TrimPrefix(line, "+")
+					lowerContent := strings.ToLower(content)
 
 					for _, sec := range secretPatterns {
+						matchCandidate := false
+						for _, kw := range sec.keywords {
+							if strings.Contains(lowerContent, kw) {
+								matchCandidate = true
+								break
+							}
+						}
+						if !matchCandidate {
+							continue
+						}
+
 						if sec.pattern.MatchString(content) {
 							issues = append(issues, model.ReviewIssue{
 								Severity:    model.SeverityHigh,
