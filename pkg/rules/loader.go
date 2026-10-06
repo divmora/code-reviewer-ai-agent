@@ -13,14 +13,14 @@ import (
 // IngestionOptions specifies all potential rule sources.
 type IngestionOptions struct {
 	Workspace    string
-	CustomPrompt string // From --prompt or Zenith UI
+	CustomPrompt string // From --prompt or caller input
 	RulesJSON    string // From --rules-json
-	RulesFile    string // From --rules
+	RulesFile    string // From --rules or CODE_REVIEWER_RULES_FILE
 	InlineRule   string // From --rule
 	Profile      string // From --profile
 }
 
-// LoadRules aggregates and parses rules from repo files and CLI / Zenith inputs.
+// LoadRules aggregates and parses rules from repo files and CLI inputs.
 func LoadRules(opts IngestionOptions) (*model.RuleConfig, error) {
 	config := &model.RuleConfig{
 		Language: "en-US",
@@ -50,12 +50,10 @@ func LoadRules(opts IngestionOptions) (*model.RuleConfig, error) {
 	// 1. Auto-discover repo-level configs if workspace provided
 	if opts.Workspace != "" {
 		candidates := []string{
-			filepath.Join(opts.Workspace, ".coderabbit.yaml"),
-			filepath.Join(opts.Workspace, ".coderabbit.yml"),
-			filepath.Join(opts.Workspace, ".zenith.yaml"),
-			filepath.Join(opts.Workspace, ".zenith.yml"),
 			filepath.Join(opts.Workspace, ".code-reviewer.yaml"),
 			filepath.Join(opts.Workspace, ".code-reviewer.yml"),
+			filepath.Join(opts.Workspace, ".coderabbit.yaml"),
+			filepath.Join(opts.Workspace, ".coderabbit.yml"),
 		}
 
 		for _, path := range candidates {
@@ -67,14 +65,23 @@ func LoadRules(opts IngestionOptions) (*model.RuleConfig, error) {
 		}
 	}
 
-	// 2. Explicit rules file from --rules
-	if opts.RulesFile != "" {
-		if err := loadFileIntoConfig(opts.RulesFile, config); err != nil {
-			return nil, fmt.Errorf("failed to load rules file %q: %w", opts.RulesFile, err)
+	// 2. Explicit rules file from --rules or environment variables
+	rulesFile := opts.RulesFile
+	if rulesFile == "" {
+		rulesFile = os.Getenv("CODE_REVIEWER_RULES_FILE")
+	}
+	if rulesFile == "" {
+		rulesFile = os.Getenv("RULES_FILE")
+	}
+
+	if rulesFile != "" {
+		resolvedPath := resolveRulesFilePath(opts.Workspace, rulesFile)
+		if err := loadFileIntoConfig(resolvedPath, config); err != nil {
+			return nil, fmt.Errorf("failed to load rules file %q: %w", resolvedPath, err)
 		}
 	}
 
-	// 3. Inline JSON from --rules-json (Zenith UI payload)
+	// 3. Inline JSON from --rules-json
 	if opts.RulesJSON != "" {
 		var inlineCfg model.RuleConfig
 		if err := json.Unmarshal([]byte(opts.RulesJSON), &inlineCfg); err == nil {
@@ -88,10 +95,12 @@ func LoadRules(opts IngestionOptions) (*model.RuleConfig, error) {
 		}
 	}
 
-	// 4. Custom prompt from --prompt or environment variable
+	// 4. Custom prompt from --prompt or environment variables
 	if opts.CustomPrompt != "" {
 		config.CustomPrompt = opts.CustomPrompt
-	} else if envPrompt := os.Getenv("ZENITH_CUSTOM_PROMPT"); envPrompt != "" {
+	} else if envPrompt := os.Getenv("CODE_REVIEWER_CUSTOM_PROMPT"); envPrompt != "" {
+		config.CustomPrompt = envPrompt
+	} else if envPrompt := os.Getenv("CUSTOM_PROMPT"); envPrompt != "" {
 		config.CustomPrompt = envPrompt
 	}
 
@@ -144,4 +153,17 @@ func mergeConfigs(base, override *model.RuleConfig) {
 	if len(override.Reviews.Rules) > 0 {
 		base.Reviews.Rules = append(base.Reviews.Rules, override.Reviews.Rules...)
 	}
+}
+
+func resolveRulesFilePath(workspace, path string) string {
+	if filepath.IsAbs(path) {
+		return path
+	}
+	if workspace != "" {
+		wsPath := filepath.Join(workspace, path)
+		if _, err := os.Stat(wsPath); err == nil {
+			return wsPath
+		}
+	}
+	return path
 }

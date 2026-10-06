@@ -20,7 +20,7 @@ func BuildReviewPrompt(projectPath string, customPrompt string, profile model.Pr
 	b.WriteString(fmt.Sprintf("Current Date: %s\n", time.Now().UTC().Format("2006-01-02")))
 	b.WriteString(fmt.Sprintf("Review Sensitivity Profile: %s\n\n", profile))
 
-	// 1. Custom Project Prompts (Zenith UI / CLI)
+	// 1. Custom Project Prompts (CLI / Config / Caller)
 	if customPrompt != "" {
 		b.WriteString("========================================================\n")
 		b.WriteString("**PROJECT SPECIFIC RULES & INSTRUCTIONS (HIGH PRIORITY):**\n")
