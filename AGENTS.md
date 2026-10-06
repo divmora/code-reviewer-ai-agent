@@ -16,7 +16,7 @@ It emulates the thoroughness and precision of CodeRabbit, producing structured f
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│               Zenith UI / CLI Ingress                  │
+│                CLI / API Ingress                       │
 │       (--url, --prompt, --rules-json, --token)         │
 └──────────────────────────┬─────────────────────────────┘
                            │
@@ -63,7 +63,7 @@ It emulates the thoroughness and precision of CodeRabbit, producing structured f
 
 The agent is instantiated using `adk.NewLocalAgentConfig()`:
 
-- **Binary Resolution**: Leverages `connection.BinaryResolver{Version: "0.4.0"}` to auto-detect and resolve the localharness binary.
+- **Binary Resolution**: Leverages `connection.BinaryResolver{Version: "0.6.0"}` to auto-detect and resolve the localharness binary.
 - **Middleware Pipeline**:
   - `middleware.NewTokenGuard(120000, 0.8, logger)`: Enforces token budgets and prevents context exhaustion.
   - `middleware.NewPatchToolArgs(logger)`: Normalizes tool arguments.
@@ -127,22 +127,23 @@ The agent is instantiated using `adk.NewLocalAgentConfig()`:
 
 ---
 
-## 4. Zenith Integration Contract
-
-The standalone agent exposes a clean CLI and programmatic interface for orchestration by **Zenith** (the unified AI platform):
+## 4. Programmatic & CLI Integration Contract
+ 
+The standalone agent exposes a clean CLI and programmatic interface for orchestration by external callers, CI/CD pipelines, and platforms (such as Zenith):
 
 ### CLI Ingestion Protocol:
-- Custom Prompt: `--prompt "Project specific instructions"` or `ZENITH_CUSTOM_PROMPT`
+- Custom Prompt: `--prompt "Project specific instructions"` or `CODE_REVIEWER_CUSTOM_PROMPT` / `CUSTOM_PROMPT`
 - Structured Rules: `--rules-json '{"rules":[{"name":"Strict Auth","description":"..."}]}'`
-- Rules File: `--rules path/to/.coderabbit.yaml`
+- Rules File: `--rules path/to/.rules.yaml` or `CODE_REVIEWER_RULES_FILE` / `RULES_FILE`
 - Output Format: `--format json` or `--format markdown`
 
 ### Programmatic SDK Interface:
 ```go
 rev := reviewer.NewReviewer(logger)
 report, err := rev.RunReview(ctx, provider, targetContext, files, reviewer.ReviewOptions{
-    CustomPrompt: zenithCustomPrompt,
-    RulesJSON:    zenithRulesJSON,
+    CustomPrompt: customPrompt,
+    RulesJSON:    rulesJSON,
+    RulesFile:    rulesFile,
     Profile:      "balanced",
     MaxComments:  15,
 })

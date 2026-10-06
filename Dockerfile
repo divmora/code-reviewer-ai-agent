@@ -10,7 +10,7 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
-RUN git clone --depth 1 --branch v0.4.0 https://github.com/divmora/localharness.git /tmp/localharness \
+RUN git clone --depth 1 --branch v0.6.0 https://github.com/divmora/localharness.git /tmp/localharness \
     && cd /tmp/localharness \
     && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -o /go/bin/localharness ./cmd/localharness \
     && rm -rf /tmp/localharness

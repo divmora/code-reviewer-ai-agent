@@ -53,9 +53,9 @@ func main() {
 	outputFile := flag.String("output", "", "File path to save the review report (e.g., review.md)")
 	profile := flag.String("profile", "balanced", "Review sensitivity profile: chill, balanced, assertive")
 
-	customPrompt := flag.String("prompt", "", "Custom project prompt (passed from Zenith UI or CLI)")
-	rulesJSON := flag.String("rules-json", "", "Inline JSON structured rules payload from Zenith UI")
-	rulesFile := flag.String("rules", "", "Path to custom YAML/JSON rules file")
+	customPrompt := flag.String("prompt", "", "Custom project review prompt (or set CODE_REVIEWER_CUSTOM_PROMPT)")
+	rulesJSON := flag.String("rules-json", "", "Inline JSON structured rules payload")
+	rulesFile := flag.String("rules", "", "Path or filename of custom YAML/JSON rules file (or set CODE_REVIEWER_RULES_FILE)")
 	inlineRule := flag.String("rule", "", "Ad-hoc inline rule instruction")
 	verbose := flag.Bool("verbose", false, "Enable verbose debug logging")
 

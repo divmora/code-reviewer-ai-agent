@@ -29,7 +29,7 @@ Code Reviewer analyzes pull requests and local git diffs across **GitLab (Cloud 
   - **Secret Scanner**: Pre-scans for exposed API keys and private keys.
   - **Draft/WIP PR Guardrails**: Skips draft pull requests unless `--ignore-drafts=false`.
 - **Universal Multi-VCS Ingress**: Smart URL parsing for GitLab (SaaS & Self-Hosted with `--skip-tls-verify`), GitHub, Bitbucket, and Local Git diffs.
-- **Zenith & ZenithUI Ingestion Protocol**: Ingests custom prompts and rules via `--prompt`, `--rules-json`, `--rules`, or direct Go SDK calls.
+- **Flexible Rules & Prompt Ingestion**: Ingests custom prompts and rules via `--prompt`, `--rules-json`, `--rules`, environment variables (`CODE_REVIEWER_CUSTOM_PROMPT`, `CODE_REVIEWER_RULES_FILE`), or direct Go SDK calls.
 
 ---
 
@@ -87,12 +87,16 @@ go run . --workspace . --against origin/main
 go run . --workspace . --diff --format markdown --output review.md
 ```
 
-### 5. Zenith & Custom Rule Ingestion
+### 5. Custom Rule & Prompt Ingestion
 ```bash
-# Pass custom prompt from Zenith UI
+# Pass custom prompt via CLI (or export CODE_REVIEWER_CUSTOM_PROMPT="...")
 go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
          --prompt "Always enforce try-catch with report(\$e) and check DB transactions" \
          --post
+
+# Pass custom rules file (or export CODE_REVIEWER_RULES_FILE=".rules.yaml")
+go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
+         --rules .custom-rules.yaml
 
 # Pass structured JSON rules
 go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
@@ -125,9 +129,9 @@ go run . --url https://gitlab.corp.internal/group/repo/-/merge_requests/42 \
 | `--format` | `terminal` | Output format: `terminal`, `markdown`, `json`, `sarif` |
 | `--output` | `""` | File path to save review report (e.g. `review.md`) |
 | `--profile` | `balanced` | Review sensitivity profile: `chill`, `balanced`, `assertive` |
-| `--prompt` | `""` | Custom project prompt (passed from Zenith UI or CLI) |
-| `--rules-json` | `""` | Inline JSON structured rules payload from Zenith UI |
-| `--rules` | `""` | Path to custom YAML/JSON rules file |
+| `--prompt` | `""` | Custom project review prompt (or env `CODE_REVIEWER_CUSTOM_PROMPT` / `CUSTOM_PROMPT`) |
+| `--rules-json` | `""` | Inline JSON structured rules payload |
+| `--rules` | `""` | Path or filename of custom YAML/JSON rules file (or env `CODE_REVIEWER_RULES_FILE` / `RULES_FILE`) |
 | `--rule` | `""` | Ad-hoc inline rule instruction |
 | `--litellm-base-url` | `""` | Custom LiteLLM proxy URL (or env `CODE_REVIEWER_LITELLM_BASE_URL` / `LITELLM_BASE_URL`) |
 | `--litellm-api-key` | `""` | Custom LiteLLM API key (or env `CODE_REVIEWER_LITELLM_API_KEY` / `LITELLM_API_KEY`) |

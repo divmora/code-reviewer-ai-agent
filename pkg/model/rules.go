@@ -37,7 +37,7 @@ type ReviewConfigOptions struct {
 	Rules            []CustomRule     `json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
-// RuleConfig represents the top-level structure of a .coderabbit.yaml or .zenith.yaml file.
+// RuleConfig represents the top-level structure of a .coderabbit.yaml or .code-reviewer.yaml file.
 type RuleConfig struct {
 	Version      string              `json:"version" yaml:"version"`
 	Language     string              `json:"language" yaml:"language"`
